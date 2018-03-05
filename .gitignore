@@ -1,0 +1,8 @@
+.lock-waf*
+build
+*~
+*.pyc
+old
+cut
+*.html
+notes.org

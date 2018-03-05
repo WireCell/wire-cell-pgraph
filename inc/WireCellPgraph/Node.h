@@ -1,0 +1,65 @@
+#ifndef WIRECELL_PGRAPH_NODE
+#define WIRECELL_PGRAPH_NODE
+
+#include "WireCellPgraph/Port.h"
+
+namespace WireCell {
+    namespace Pgraph {
+
+        // A node in the DFP graph must inherit from Node.
+        class Node {
+        public:
+            Node() {} // constructures may wish to resize/populate m_ports.
+            virtual ~Node() { }
+            
+            // Concrete Node must implement this to consume inputs
+            // and/or produce outputs.
+            virtual bool operator()() = 0;
+
+            // By default a Node is ready to execute if no input ports
+            // are empty. Concrete ports may override.
+            virtual bool ready()  {
+                for (auto& p : m_ports[Port::input]) {
+                    if (p.empty()) return false;
+                }
+                return true;
+            }
+
+            Port& iport(size_t ind=0) {
+                return port(Port::input, ind);
+            }
+            Port& oport(size_t ind=0) {
+                return port(Port::output, ind);
+            }
+
+            PortList& input_ports() {
+                return m_ports[Port::input];
+            }
+            PortList& output_ports() {
+                return m_ports[Port::output];
+            }
+
+            Port& port(Port::Type type, size_t ind=0) {
+                if (ind >= m_ports[type].size()) {
+                    THROW(ValueError() << errmsg{"unknown port"});
+                }
+                return m_ports[type][ind];
+            }
+            Port& port(Port::Type type, const std::string& name) {
+                for (size_t ind=0; ind<m_ports[type].size(); ++ind) {
+                    if (m_ports[type][ind].name() != name) {
+                        continue;
+                    }
+                    return port(type, ind);
+                }
+                THROW(ValueError() << errmsg{"unknown port"});
+            }
+
+        protected:
+            // Concrete class should fill during construction
+            PortList m_ports[Port::ntypes];
+        };
+    }
+}
+
+#endif
