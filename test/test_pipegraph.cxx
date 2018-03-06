@@ -15,16 +15,16 @@ using namespace std;
 class IdNode : public Pgraph::Node
 {
 public:
-    IdNode(const std::string& name, int id, int nin=0, int nout=0)
+    IdNode(const std::string& name, int id, size_t nin=0, size_t nout=0)
         : m_name(name), m_id(id) {
         using Pgraph::Port;
-        for (int ind=0; ind<nin; ++ind) {
+        for (size_t ind=0; ind<nin; ++ind) {
             m_ports[Port::input].push_back(
-                Pgraph::Port(this, Pgraph::Port::input));
+                Pgraph::Port(this, Pgraph::Port::input, "int"));
         }
-        for (int ind=0; ind<nout; ++ind) {
+        for (size_t ind=0; ind<nout; ++ind) {
             m_ports[Port::output].push_back(
-                Pgraph::Port(this, Pgraph::Port::output));
+                Pgraph::Port(this, Pgraph::Port::output, "int"));
         }
     }        
     int id() { return m_id; }
@@ -36,8 +36,8 @@ public:
     
 
 private:
-    int m_id;
     std::string m_name;
+    int m_id;
 };
 class Source : public IdNode {
 public:
@@ -92,7 +92,7 @@ public:
             Pgraph::Data d = p.get();
             int n = boost::any_cast<int>(d);
             o << n << " ";
-            outv.push(d);
+            outv.push_back(d);
         }
         o << std::endl;
 
@@ -115,7 +115,7 @@ public:
             m_buf = boost::any_cast<Pgraph::Queue>(iport().get());
         }
         auto d = m_buf.front();
-        m_buf.pop();
+        m_buf.pop_front();
         oport().put(d);
         return true;
     }
@@ -183,7 +183,7 @@ int main() {
     auto sorted = g.sort_kahn();
     cout << "Sorted to " << sorted.size() << " nodes\n";
 
-    for (int ind=0; ind<sorted.size(); ++ind) {
+    for (size_t ind=0; ind<sorted.size(); ++ind) {
         IdNode* idn = dynamic_cast<IdNode*>(sorted[ind]);
         idn->msg("at index ") << ind << endl;
     }

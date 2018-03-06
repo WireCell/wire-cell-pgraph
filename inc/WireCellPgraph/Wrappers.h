@@ -11,6 +11,7 @@
 #include "WireCellIface/IFunctionNode.h"
 #include "WireCellIface/IQueuedoutNode.h"
 #include "WireCellIface/IJoinNode.h"
+#include "WireCellIface/IHydraNode.h"
 
 #include <map>
 #include <iostream>             // debug
@@ -24,15 +25,16 @@ namespace WireCell { namespace Pgraph {
         class PortedNode : public Pgraph::Node
         {
         public:
-            PortedNode(int nin=0, int nout=0) { 
+            PortedNode(INode::pointer wcnode) {
+                
                 using Pgraph::Port;
-                for (int ind=0; ind<nin; ++ind) {
+                for (auto sig : wcnode->input_types()) {
                     m_ports[Port::input].push_back(
-                        Pgraph::Port(this, Pgraph::Port::input));
+                        Pgraph::Port(this, Pgraph::Port::input, sig));
                 }
-                for (int ind=0; ind<nout; ++ind) {
+                for (auto sig : wcnode->output_types()) {
                     m_ports[Port::output].push_back(
-                        Pgraph::Port(this, Pgraph::Port::output));
+                        Pgraph::Port(this, Pgraph::Port::output, sig));
                 }
             }        
         };
@@ -42,7 +44,7 @@ namespace WireCell { namespace Pgraph {
             ISourceNodeBase::pointer m_wcnode;
             bool m_ok;
         public:
-            Source(INode::pointer wcnode) : PortedNode(0,1), m_ok(true) {
+            Source(INode::pointer wcnode) : PortedNode(wcnode), m_ok(true) {
                 m_wcnode = std::dynamic_pointer_cast<ISourceNodeBase>(wcnode);
             }
             virtual ~Source() {}
@@ -70,7 +72,7 @@ namespace WireCell { namespace Pgraph {
         class Sink : public PortedNode {
             ISinkNodeBase::pointer m_wcnode;
         public:
-            Sink(INode::pointer wcnode) : PortedNode(1,0) {
+            Sink(INode::pointer wcnode) : PortedNode(wcnode) {
                 m_wcnode = std::dynamic_pointer_cast<ISinkNodeBase>(wcnode);
             }
             virtual ~Sink() {}
@@ -86,7 +88,7 @@ namespace WireCell { namespace Pgraph {
         class Function : public PortedNode {
             IFunctionNodeBase::pointer m_wcnode;
         public:
-            Function(INode::pointer wcnode) : PortedNode(1,1) {
+            Function(INode::pointer wcnode) : PortedNode(wcnode) {
                 m_wcnode = std::dynamic_pointer_cast<IFunctionNodeBase>(wcnode);
             }
             virtual ~Function() {}
@@ -103,7 +105,7 @@ namespace WireCell { namespace Pgraph {
         class Queuedout : public PortedNode {
             IQueuedoutNodeBase::pointer m_wcnode;
         public:
-            Queuedout(INode::pointer wcnode) : PortedNode(1,1) {
+            Queuedout(INode::pointer wcnode) : PortedNode(wcnode) {
                 m_wcnode = std::dynamic_pointer_cast<IQueuedoutNodeBase>(wcnode);
             }
             virtual ~Queuedout() {}
@@ -122,8 +124,7 @@ namespace WireCell { namespace Pgraph {
         class Join : public PortedNode {
             IJoinNodeBase::pointer m_wcnode;
         public:
-            Join(INode::pointer wcnode) : PortedNode(wcnode->input_types().size(),
-                                                     wcnode->output_types().size()) {
+            Join(INode::pointer wcnode) : PortedNode(wcnode) {
                 m_wcnode = std::dynamic_pointer_cast<IJoinNodeBase>(wcnode);
             }
             virtual ~Join() {}
@@ -142,7 +143,65 @@ namespace WireCell { namespace Pgraph {
             }
         };
 
-        
+        class Hydra : public PortedNode {
+            IHydraNodeBase::pointer m_wcnode;
+        public:
+            Hydra(INode::pointer wcnode) : PortedNode(wcnode) {
+                m_wcnode = std::dynamic_pointer_cast<IHydraNodeBase>(wcnode);
+            }
+            virtual ~Hydra() { }
+            virtual bool ready() {
+                // require at least one input and that some new input
+                // was consumed or output was produced since last call.
+
+                for (auto& p : m_ports[Port::input]) {
+                    if (!p.empty()) return true;
+                }
+                return true;
+            }
+            
+            virtual bool operator()() {
+                auto& iports = input_ports();
+                size_t nin = iports.size();
+
+                // 1) fill input any queue vector
+                IHydraNodeBase::any_queue_vector inqv(nin);
+                for (size_t ind=0; ind < nin; ++ind) {
+                    Edge edge = iports[nin].edge();
+                    inqv[ind].insert(inqv[ind].begin(), edge->begin(), edge->end());
+                }
+
+                auto& oports = output_ports();
+                size_t nout = oports.size();
+
+                // 2) create output any queue vector
+                IHydraNodeBase::any_queue_vector outqv(nout);
+
+                // 3) call
+                bool ok = (*m_wcnode)(inqv, outqv);
+                if (!ok) { return false; } // fixme: this probably
+                                           // needs to reflect into
+                                           // ready().
+
+                // 4) pop dfp input queues to match.  BIG FAT
+                // WARNING: this trimming assumes calller only
+                // pop_front's.  Really should hunt for which ones
+                // have been removed.
+                for (size_t ind=0; ind < nin; ++ind) {
+                    size_t want = inqv[ind].size();
+                    while (iports[ind].size() > want) {
+                        iports[ind].get(); 
+                    }
+                }
+                
+                // 5) send out output any queue vectors
+                for (size_t ind=0; ind < nout; ++ind) {
+                    Edge edge = oports[nout].edge();
+                    edge->insert(edge->end(), outqv.begin(), outqv.end());
+                }
+                // 6) record input queue levels
+            }
+        };
     }}
 
 #endif

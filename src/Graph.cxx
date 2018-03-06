@@ -6,12 +6,28 @@
 
 using namespace WireCell::Pgraph;
 
-void Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
+bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
 {
+    Port& tport = tail->port(Port::output, tpind);
+    Port& hport = head->port(Port::input, hpind);
+    if (tport.signature() != hport.signature()) {
+        std::cerr << "Port signature mismatch: \""
+                  << tport.signature ()
+                  << "\" != \""
+                  << hport.signature()
+                  << "\"\n";
+        THROW(ValueError() << errmsg{"port signature mismatch"});
+
+        return false;
+    }
+
     m_edges.push_back(std::make_pair(tail,head));
     Edge edge = std::make_shared<Queue>();
-    tail->port(Port::output, tpind).plug(edge);
-    head->port(Port::input, hpind).plug(edge);                
+
+    tport.plug(edge);
+    hport.plug(edge);                
+
+    return true;
 }
 
 std::vector<Node*> Graph::sort_kahn() {
@@ -50,13 +66,17 @@ std::vector<Node*> Graph::sort_kahn() {
 bool Graph::execute()
 {
     auto nodes = sort_kahn();
+    std::cerr << "Graph executing with " << nodes.size() << " nodes\n";
+
                 
     while (true) {
         bool did_something = false;
         // go through nodes starting outputs
-        for (auto nit = nodes.rbegin(); nit != nodes.rend(); ++nit) {
+        int count = 0;
+        for (auto nit = nodes.rbegin(); nit != nodes.rend(); ++nit, ++count) {
             Node* node = *nit;
             if (!node->ready()) {
+                std::cerr << "Node not ready: " << count << std::endl;
                 continue; // go futher upstream
             }
                         
@@ -65,6 +85,7 @@ bool Graph::execute()
                 std::cerr << "PipeGraph failed\n";
                 return false;
             }
+            std::cerr << "Ran node " << count << std::endl;
             did_something = true;
             break;
         }

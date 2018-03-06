@@ -11,6 +11,7 @@ Factory::Factory() {
     bind_maker<Function>(INode::functionNode);
     bind_maker<Queuedout>(INode::queuedoutNode);
     bind_maker<Join>(INode::joinNode);
+    bind_maker<Hydra>(INode::hydraNode);
     // ...
 }
 
@@ -21,7 +22,9 @@ Node* Factory::operator()(WireCell::INode::pointer wcnode) {
     }
     auto mit = m_factory.find(wcnode->category());
     if (mit == m_factory.end()) {
-        return nullptr;
+        std::cerr << "Pgraph::Factory failed to find maker for category: "
+                  << wcnode->category() << "\n";
+        THROW(ValueError() << errmsg{"failed to find maker"});
     }
     auto maker = mit->second;
     

@@ -29,8 +29,9 @@ namespace WireCell {
 
         class Graph {
         public:
-            // Connect two nodes by their given ports.
-            void connect(Node* tail, Node* head,
+            // Connect two nodes by their given ports.  Return false
+            // if they are incompatible.
+            bool connect(Node* tail, Node* head,
                          size_t tpind=0, size_t hpind=0);
             
             // return a topological sort of the graph as per Kahn algorithm.
