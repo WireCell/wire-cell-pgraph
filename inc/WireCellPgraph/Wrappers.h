@@ -200,6 +200,8 @@ namespace WireCell { namespace Pgraph {
                     edge->insert(edge->end(), outqv.begin(), outqv.end());
                 }
                 // 6) record input queue levels
+
+                return true;
             }
         };
     }}
