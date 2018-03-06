@@ -6,12 +6,17 @@
 
 using namespace WireCell::Pgraph;
 
+void Graph::add_node(Node* node)
+{
+    m_nodes.insert(node);
+}
+
 bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
 {
-    Port& tport = tail->port(Port::output, tpind);
-    Port& hport = head->port(Port::input, hpind);
+    Port& tport = tail->output_ports()[tpind];
+    Port& hport = head->input_ports()[hpind];
     if (tport.signature() != hport.signature()) {
-        std::cerr << "Port signature mismatch: \""
+        std::cerr << "Pgraph::Graph: port signature mismatch: \""
                   << tport.signature ()
                   << "\" != \""
                   << hport.signature()
@@ -26,6 +31,13 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
 
     tport.plug(edge);
     hport.plug(edge);                
+
+    add_node(tail);
+    add_node(head);
+
+    std::cerr << "Graph::connect: "
+              << tport.signature () << ":" << tpind << " --> "
+              << hport.signature() << ":" << hpind << "\n";
 
     return true;
 }
@@ -66,7 +78,7 @@ std::vector<Node*> Graph::sort_kahn() {
 bool Graph::execute()
 {
     auto nodes = sort_kahn();
-    std::cerr << "Graph executing with " << nodes.size() << " nodes\n";
+    std::cerr << "Pgraph::Graph executing with " << nodes.size() << " nodes\n";
 
                 
     while (true) {
@@ -76,7 +88,7 @@ bool Graph::execute()
         for (auto nit = nodes.rbegin(); nit != nodes.rend(); ++nit, ++count) {
             Node* node = *nit;
             if (!node->ready()) {
-                std::cerr << "Node not ready: " << count << std::endl;
+                //std::cerr << "Pgraph::Graph node not ready: " << count << std::endl;
                 continue; // go futher upstream
             }
                         
@@ -94,5 +106,16 @@ bool Graph::execute()
         }
     }
     return true;    // shouldn't reach
+}
+
+
+bool Graph::connected()
+{
+    for (auto n : m_nodes) {
+        if (!n->connected()) {
+            return false;
+        }
+    }
+    return true;
 }
 

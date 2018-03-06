@@ -30,7 +30,7 @@ std::pair<WireCell::INode::pointer, int> get_node(WireCell::Configuration jone)
     // false as we should be the ones creating
     auto nptr = Factory::lookup_tn<INode>(node, false);
     if (!nptr) {
-        std::cerr << "Failed to get node " << node << "\n";
+        std::cerr << "Pgrapher: failed to get node " << node << "\n";
         THROW(ValueError() << errmsg{"failed to get node"});
     }
 
@@ -46,14 +46,18 @@ void Pgrapher::configure(const WireCell::Configuration& cfg)
         auto tail = get_node(jedge["tail"]);
         auto head = get_node(jedge["head"]);
 
-        std::cerr << "Connecting:\n" << jedge << "\n";
+        std::cerr << "Pgrapher: connecting:\n" << jedge << "\n";
 
         bool ok = m_graph.connect(fac(tail.first),  fac(head.first),
                                   tail.second, head.second);
         if (!ok) {
-            std::cerr << "Failed to connect edge:\n" << jedge << std::endl;
+            std::cerr << "Pgrapher: failed to connect edge:\n" << jedge << std::endl;
             THROW(ValueError() << errmsg{"failed to connect edge"});
         }
+    }
+    if (!m_graph.connected()) {
+        std::cerr << "Pgrapher: graph not fully connected\n";
+        THROW(ValueError() << errmsg{"graph not fully connected"});
     }
 }
 

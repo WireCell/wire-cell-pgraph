@@ -55,6 +55,20 @@ namespace WireCell {
                 THROW(ValueError() << errmsg{"unknown port"});
             }
 
+            bool connected() {
+                for (auto& p : input_ports()) {
+                    if (!p.edge()) {
+                        return false;
+                    }
+                }
+                for (auto& p : output_ports()) {
+                    if (!p.edge()) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
         protected:
             // Concrete class should fill during construction
             PortList m_ports[Port::ntypes];

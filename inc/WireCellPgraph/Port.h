@@ -10,6 +10,8 @@
 #include <deque>
 #include <memory>
 
+
+
 namespace WireCell {
     namespace Pgraph {
 
@@ -30,70 +32,30 @@ namespace WireCell {
         public:
             enum Type { tail=0, output=0, head=1, input=1, ntypes=2 };
 
-            Port(Node* node, Type type, std::string signature,
-                 std::string name="") :
-                m_node(node), m_type(type), 
-                m_name(name), m_sig(signature),
-                m_edge(nullptr)
-                { }
+            Port(Node* node, Type type, std::string signature,std::string name="");
                 
-            bool isinput() { return m_type == Port::input; }
-            bool isoutput() { return m_type == Port::output; }
-
-            Edge edge() { return m_edge; }
+            bool isinput();
+            bool isoutput();
+            Edge edge();
 
             // Connect an edge, returning any previous one.
-            Edge plug(Edge edge) {
-                Edge ret = m_edge;
-                m_edge = edge;
-                return ret;
-            }
+            Edge plug(Edge edge);
 
             // return edge queue size or 0 if no edge has been plugged
-            size_t size() {
-                if (!m_edge) { return 0; }
-                return m_edge->size();
-            }
+            size_t size();
 
             // Return true if queue is empty or no edge has been plugged.
-            bool empty() {
-                if (!m_edge or m_edge->empty()) { return true; }
-                return false;
-            }
+            bool empty();
 
             // Get the next data.  By default this pops the data off
             // the queue.  To "peek" at the data, pas false.
-            Data get(bool pop = true) {
-                if (isoutput()) {
-                    THROW(RuntimeError()
-                          << errmsg{"can not get from output port"});
-                }
-                if (!m_edge) {
-                    THROW(RuntimeError() << errmsg{"port has no edge"});
-                }
-                if (m_edge->empty()) {
-                    THROW(RuntimeError() << errmsg{"edge is empty"});
-                }
-                Data ret = m_edge->front();
-                if (pop) {
-                    m_edge->pop_front();
-                }
-                return ret;
-            }
+            Data get(bool pop = true);
 
             // Put the data onto the queue.
-            void put(Data& data) {
-                if (isinput()) {
-                    THROW(RuntimeError() << errmsg{"can not put to input port"});
-                }
-                if (!m_edge) {
-                    THROW(RuntimeError() << errmsg{"port has no edge"});
-                }
-                m_edge->push_back(data);
-            }
+            void put(Data& data);
 
-            const std::string& name() { return m_name; }
-            const std::string& signature() { return m_sig; }
+            const std::string& name();
+            const std::string& signature();
 
         private:
             Node* m_node;       // node to which port belongs

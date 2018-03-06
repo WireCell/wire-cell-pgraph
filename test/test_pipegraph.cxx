@@ -76,7 +76,7 @@ public:
     Njoin(int id, int n) : IdNode("joi", id, n, 1) {}
     virtual bool ready()  {
         auto& ip = input_ports();
-        for (int ind=0; ind<ip.size(); ++ind) {
+        for (size_t ind=0; ind<ip.size(); ++ind) {
             auto& p = ip[ind];
             if (p.empty()) {
                 //msg("port empty: ") << ind << std::endl;

@@ -24,13 +24,20 @@
 
 #include "WireCellPgraph/Node.h"
 
+#include <vector>
+#include <unordered_set>
+
 namespace WireCell {
     namespace Pgraph {
 
         class Graph {
         public:
+            // Add a node to the graph.
+            void add_node(Node* node);
+
             // Connect two nodes by their given ports.  Return false
-            // if they are incompatible.
+            // if they are incompatible.  new nodes will be implicitly
+            // added to the graph.
             bool connect(Node* tail, Node* head,
                          size_t tpind=0, size_t hpind=0);
             
@@ -40,8 +47,11 @@ namespace WireCell {
             // Excute the graph until nodes stop delivering
             bool execute();
 
+            // Return false if any node is not connected.
+            bool connected();
         private:
             std::vector<std::pair<Node*,Node*> > m_edges;
+            std::unordered_set<Node*> m_nodes;
         };
 }
 }

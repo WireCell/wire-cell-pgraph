@@ -167,7 +167,11 @@ namespace WireCell { namespace Pgraph {
                 // 1) fill input any queue vector
                 IHydraNodeBase::any_queue_vector inqv(nin);
                 for (size_t ind=0; ind < nin; ++ind) {
-                    Edge edge = iports[nin].edge();
+                    Edge edge = iports[ind].edge();
+                    if (!edge) {
+                        std::cerr << "Hydra: got broken edge\n";
+                        continue;
+                    }
                     inqv[ind].insert(inqv[ind].begin(), edge->begin(), edge->end());
                 }
 
