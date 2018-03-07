@@ -39,7 +39,7 @@ local beam = {
 };
 local depojoin = {
   type: "DepoMerger",
-};
+  };
 
 local app = {
   type: "Pgrapher",

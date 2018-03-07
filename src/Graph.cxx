@@ -94,10 +94,10 @@ bool Graph::execute()
                         
             bool ok = (*node)();
             if (!ok) {
-                std::cerr << "PipeGraph failed\n";
+                std::cerr << "PipeGraph node returned false\nnode:\n" << node->ident() << "\n";
                 return false;
             }
-            std::cerr << "Ran node " << count << std::endl;
+            std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
             did_something = true;
             break;
         }

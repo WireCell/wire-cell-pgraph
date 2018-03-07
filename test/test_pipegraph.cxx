@@ -8,6 +8,7 @@
 #include "WireCellPgraph/Graph.h"
 
 #include <iostream>
+#include <sstream>
 
 using namespace WireCell;
 using namespace std;
@@ -29,8 +30,13 @@ public:
     }        
     int id() { return m_id; }
 
+    virtual std::string ident() {
+        stringstream ss;
+        ss << m_name << "[" << m_id << "]";
+        return ss.str();
+    }
     std::ostream& msg(const std::string s) {
-        std::cerr << m_name << "[" << m_id << "]:\t" << s;
+        std::cerr << ident() << ":\t" << s;
         return std::cerr;
     }
     

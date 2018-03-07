@@ -13,8 +13,11 @@
 #include "WireCellIface/IJoinNode.h"
 #include "WireCellIface/IHydraNode.h"
 
+#include "WireCellUtil/Type.h"
+
 #include <map>
 #include <iostream>             // debug
+#include <sstream>
 
 namespace WireCell { namespace Pgraph { 
 
@@ -25,7 +28,7 @@ namespace WireCell { namespace Pgraph {
         class PortedNode : public Pgraph::Node
         {
         public:
-            PortedNode(INode::pointer wcnode) {
+            PortedNode(INode::pointer wcnode) : m_wcnode(wcnode) {
                 
                 using Pgraph::Port;
                 for (auto sig : wcnode->input_types()) {
@@ -37,6 +40,26 @@ namespace WireCell { namespace Pgraph {
                         Pgraph::Port(this, Pgraph::Port::output, sig));
                 }
             }        
+
+            virtual std::string ident() {
+                std::stringstream ss;
+                ss << "<Node cat:" << m_wcnode->category()
+                   << " sig:" << demangle(m_wcnode->signature());
+                ss << " inputs:[";
+                for (auto t : m_wcnode->input_types()) {
+                    ss << " " << demangle(t);
+                }
+                ss << " ]";
+                ss << " outputs:[";
+                for (auto t : m_wcnode->output_types()) {
+                    ss << " " << demangle(t);
+                }
+                ss << " ]";
+                return ss.str();
+            }
+
+        private:
+            INode::pointer m_wcnode;
         };
 
 
@@ -157,7 +180,7 @@ namespace WireCell { namespace Pgraph {
                 for (auto& p : m_ports[Port::input]) {
                     if (!p.empty()) return true;
                 }
-                return true;
+                return false;
             }
             
             virtual bool operator()() {
@@ -200,8 +223,8 @@ namespace WireCell { namespace Pgraph {
                 
                 // 5) send out output any queue vectors
                 for (size_t ind=0; ind < nout; ++ind) {
-                    Edge edge = oports[nout].edge();
-                    edge->insert(edge->end(), outqv.begin(), outqv.end());
+                    Edge edge = oports[ind].edge();
+                    edge->insert(edge->end(), outqv[ind].begin(), outqv[ind].end());
                 }
                 // 6) record input queue levels
 
