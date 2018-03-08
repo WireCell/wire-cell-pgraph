@@ -1,21 +1,30 @@
 #include "WireCellPgraph/Port.h"
 
+// this is needed to test for EOS which otherwise would leave Port
+// independent from INode....
+#include "WireCellIface/INode.h"
+
 
 #include <iostream>
 
 using namespace std;
 using namespace WireCell::Pgraph;
 
-Port::Port(Node* node, Type type, std::string signature, std::string name) :
-    m_node(node), m_type(type), 
-    m_name(name), m_sig(signature),
-    m_edge(nullptr)
+Port::Port(Node* node, Type type, std::string signature, std::string name)
+    : m_node(node)
+    , m_type(type)
+    , m_name(name)
+    , m_sig(signature)
+    , m_edge(nullptr)
+    , m_eos(false)
 { }
                 
 bool Port::isinput() { return m_type == Port::input; }
 bool Port::isoutput() { return m_type == Port::output; }
 
 Edge Port::edge() { return m_edge; }
+
+bool Port::eos() { return m_eos; }
 
 // Connect an edge, returning any previous one.
 Edge Port::plug(Edge edge) {

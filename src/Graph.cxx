@@ -35,6 +35,10 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
     add_node(tail);
     add_node(head);
 
+    m_edges_forward[tail].push_back(head);
+    m_edges_backward[head].push_back(tail);
+
+
     std::cerr << "Graph::connect: "
               << tport.signature () << ":" << tpind << " --> "
               << hport.signature() << ":" << hpind << "\n";
@@ -43,10 +47,10 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
 }
 
 std::vector<Node*> Graph::sort_kahn() {
-    std::unordered_map< Node*, std::vector<Node*> > edges;
+
     std::unordered_map<Node*, int> nincoming;
     for (auto th : m_edges) {
-        edges[th.first].push_back(th.second);
+
         nincoming[th.first] += 0; // make sure all nodes represented
         nincoming[th.second] += 1;
     }
@@ -65,7 +69,7 @@ std::vector<Node*> Graph::sort_kahn() {
         seeds.erase(t);
         ret.push_back(t);
 
-        for (auto h : edges[t]) {
+        for (auto h : m_edges_forward[t]) {
             nincoming[h] -= 1;
             if (nincoming[h] == 0) {
                 seeds.insert(h);
@@ -75,6 +79,22 @@ std::vector<Node*> Graph::sort_kahn() {
     return ret;
 }
 
+int Graph::execute_upstream(Node* node)
+{
+    int count = 0;
+    for (auto parent : m_edges_backward[node]) {
+        bool ok = (*parent)();
+        if (ok) {
+            ++count;
+            continue;
+        }
+        count += execute_upstream(parent);
+    }
+    bool ok = (*node)();
+    if (ok) { ++count; }
+    return count;
+}
+
 bool Graph::execute()
 {
     auto nodes = sort_kahn();
@@ -82,31 +102,36 @@ bool Graph::execute()
 
                 
     while (true) {
-        bool did_something = false;
-        // go through nodes starting outputs
+
         int count = 0;
+        bool did_something = false;            
+
         for (auto nit = nodes.rbegin(); nit != nodes.rend(); ++nit, ++count) {
             Node* node = *nit;
-            if (!node->ready()) {
-                //std::cerr << "Pgraph::Graph node not ready: " << count << std::endl;
-                continue; // go futher upstream
-            }
-                        
+
             bool ok = (*node)();
-            if (!ok) {
-                std::cerr << "PipeGraph node returned false\nnode:\n" << node->ident() << "\n";
-                return false;
+            if (ok) {
+                std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
+                did_something = true;
+                break;          // start again from bottom of graph
             }
-            std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
-            did_something = true;
-            break;
+
+            int nupstream = execute_upstream(node);
+            if (nupstream > 0) {
+                did_something = true;
+                break;          // start again from bottom of graph
+            }
+
+            // otherwise try upstream following topological sort
         }
+
         if (!did_something) {
             return true;
         }
     }
     return true;    // shouldn't reach
 }
+
 
 
 bool Graph::connected()

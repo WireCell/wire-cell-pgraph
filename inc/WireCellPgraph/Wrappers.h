@@ -22,9 +22,14 @@
 namespace WireCell { namespace Pgraph { 
 
         // Node wrappers are constructed with just an INode::pointer
-        // and adapt it to Pgraph::Node.  They are constructed with a
-        // type-erasing factory below.
+        // and adapt it to Pgraph::Node.  They operate at the
+        // boost::any level and the I*BaseNode INode level.  They are
+        // not meant to be constructed directly but through the
+        // type-erasing Pgraph::Factory.  They intercept data looking
+        // for INode::DFPMeta objects to control flow.
 
+        // Base class taking care of constructing ports and providing
+        // ident().
         class PortedNode : public Pgraph::Node
         {
         public:
@@ -76,22 +81,13 @@ namespace WireCell { namespace Pgraph {
                 boost::any obj;
                 m_ok = (*m_wcnode)(obj);
                 if (!m_ok) {
-                    // fixme: need to clean up the node protocol.  When using
-                    // queues, the protocol is simply: don't send anything out
-                    // when you have nothing to send out.  But in the
-                    // functional interface with output arguments there is not
-                    // general type safe way to tell if the output argument
-                    // was set to NULL.  So, we must wait to go one past EOS
-                    // to see the railure returned.  What I *should* do is use
-                    // excpetions to indicate failures or read-past-EOS.
-                    return true;
+                    return false;
                 }
                 oport().put(obj);
                 return true;
             }
         };
 
-// send objects to a terminal node.
         class Sink : public PortedNode {
             ISinkNodeBase::pointer m_wcnode;
         public:
@@ -100,7 +96,9 @@ namespace WireCell { namespace Pgraph {
             }
             virtual ~Sink() {}
             virtual bool operator()() {
-                auto obj = iport().get();
+                Port& ip = iport();
+                if (ip.empty()) { return false; }
+                auto obj = ip.get();
                 bool ok = (*m_wcnode)(obj);
                 std::cerr << "Sink returns: " << ok << std::endl;
                 return ok;
@@ -116,8 +114,10 @@ namespace WireCell { namespace Pgraph {
             }
             virtual ~Function() {}
             virtual bool operator()() {
+                Port& ip = iport();
+                if (ip.empty()) { return false; }
                 boost::any out;
-                auto in = iport().get();
+                auto in = ip.get();
                 bool ok = (*m_wcnode)(in, out);
                 if (!ok) return false;
                 oport().put(out);
@@ -133,8 +133,10 @@ namespace WireCell { namespace Pgraph {
             }
             virtual ~Queuedout() {}
             virtual bool operator()() {
+                Port& ip = iport();
+                if (ip.empty()) { return false; }
                 IQueuedoutNodeBase::queuedany outv;
-                auto in = iport().get();
+                auto in = ip.get();
                 bool ok = (*m_wcnode)(in, outv);
                 if (!ok) return false;
                 for (auto out : outv) {
@@ -154,6 +156,10 @@ namespace WireCell { namespace Pgraph {
             virtual bool operator()() {
                 auto& iports = input_ports();
                 size_t nin = iports.size();
+                for (size_t ind=0; ind<nin; ++ind) {
+                    if (iports[ind].empty()) { return false;
+                    }                        
+                }
                 IJoinNodeBase::any_vector inv(nin);
                 for (size_t ind=0; ind<nin; ++ind) {
                     inv[ind] = iports[ind].get();
@@ -166,6 +172,23 @@ namespace WireCell { namespace Pgraph {
             }
         };
 
+        // N-to-1 of the same type with synchronization on input.
+        // class Fanin : public PortedNode {
+        //     IFaninNodeBase::pointer m_wcnode;
+        //     std::vector<bool> m_eos;
+        // public:
+        //     Fanin(INode::pointer wcnode) : PortedNode(wcnode) {
+        //         m_wcnode = std::dynamic_pointer_cast<IFaninNodeBase>(wcnode);
+        //     }
+        //     virtual ~Fanin() {}
+
+        //     // A Fanin node is ready when all streams that have not
+        //     // yet ended have input.
+        //     virtual bool ready() {
+                
+        //     }
+        // };
+
         class Hydra : public PortedNode {
             IHydraNodeBase::pointer m_wcnode;
         public:
@@ -174,18 +197,42 @@ namespace WireCell { namespace Pgraph {
             }
             virtual ~Hydra() { }
             virtual bool ready() {
-                // require at least one input and that some new input
-                // was consumed or output was produced since last call.
 
-                for (auto& p : m_ports[Port::input]) {
-                    if (!p.empty()) return true;
+                // A hydra is ready for calling if all open input ports have some data.
+
+                auto& iports = input_ports();
+                const size_t nin = iports.size();
+                int nvalid=0, nfull=0;
+                for (size_t ind=0; ind<nin; ++ind) {
+                    Port& p = iports[ind];
+                    if (p.eos()) {
+                        continue;
+                    }
+                    ++nvalid;
+                    if (p.empty()) {
+                        continue;
+                    }
+                    ++nfull;
                 }
-                return false;
+                std::cerr << "Hydra::ready: nvalid=" << nvalid << ", nfull=" << nfull <<"\n";
+                if (!nvalid) {
+                    return false;
+                }
+                return nvalid == nfull;
             }
             
             virtual bool operator()() {
                 auto& iports = input_ports();
                 size_t nin = iports.size();
+
+                // 0) Hydra needs all input ports full to be ready.
+                // For EOS, the concrete INode better retain the
+                // terminating nullptr in its input stream.
+                for (size_t ind=0; ind < nin; ++ind) {
+                    if (iports[ind].empty()) {
+                        return false;
+                    }
+                }
 
                 // 1) fill input any queue vector
                 IHydraNodeBase::any_queue_vector inqv(nin);
@@ -193,6 +240,9 @@ namespace WireCell { namespace Pgraph {
                     Edge edge = iports[ind].edge();
                     if (!edge) {
                         std::cerr << "Hydra: got broken edge\n";
+                        continue;
+                    }
+                    if (edge->empty()) {
                         continue;
                     }
                     inqv[ind].insert(inqv[ind].begin(), edge->begin(), edge->end());
@@ -226,11 +276,12 @@ namespace WireCell { namespace Pgraph {
                     Edge edge = oports[ind].edge();
                     edge->insert(edge->end(), outqv[ind].begin(), outqv[ind].end());
                 }
-                // 6) record input queue levels
 
                 return true;
             }
         };
+
+
     }}
 
 #endif

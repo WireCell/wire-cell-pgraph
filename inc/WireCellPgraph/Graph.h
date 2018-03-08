@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace WireCell {
     namespace Pgraph {
@@ -47,11 +48,17 @@ namespace WireCell {
             // Excute the graph until nodes stop delivering
             bool execute();
 
+            // Excute parents of node or if any parent is not ready,
+            // recursively call this method on parent.  Return number
+            // of nodes executed.
+            int execute_upstream(Node* node);
+
             // Return false if any node is not connected.
             bool connected();
         private:
             std::vector<std::pair<Node*,Node*> > m_edges;
             std::unordered_set<Node*> m_nodes;
+            std::unordered_map< Node*, std::vector<Node*> > m_edges_forward, m_edges_backward;
         };
 }
 }

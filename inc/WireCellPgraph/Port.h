@@ -38,6 +38,9 @@ namespace WireCell {
             bool isoutput();
             Edge edge();
 
+            // return true if port has passed EOS
+            bool eos();
+
             // Connect an edge, returning any previous one.
             Edge plug(Edge edge);
 
@@ -62,6 +65,7 @@ namespace WireCell {
             Type m_type;
             std::string m_name, m_sig;
             Edge m_edge;
+            bool m_eos;
         };
 
         typedef std::vector<Port> PortList;
