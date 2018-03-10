@@ -373,7 +373,6 @@ local digitizer = {
 };
 
 local numpy_saver = {
-    type: "NumpySaver",
     data: params.daq {
         //filename: "uboone-wctsim.npz",
         filename: "uboone-wctsim-%(src)s-%(digi)s-%(noise)s.npz" % {
@@ -385,11 +384,14 @@ local numpy_saver = {
         scale: if params.sim.digitize then 1.0 else wc.uV,
     }
 };
+local numpy_depo_saver = numpy_saver { type: "NumpyDepoSaver" };
+local numpy_frame_saver = numpy_saver { type: "NumpyFrameSaver" };
+
 
 // not configurable, just name it.
 local frame_sink = { type: "DumpFrames" };
 
-local readout = [digitizer, numpy_saver];
+local readout = [digitizer, numpy_depo_saver, numpy_frame_saver];
 
 // Here the nodes are joined into a graph for execution by the main
 // app object.  
@@ -415,10 +417,10 @@ local app = {
             },
             {
                 tail: { node: wc.tn(joincbb) },
-                head: { node: wc.tn(numpy_saver) },
+                head: { node: wc.tn(numpy_depo_saver) },
             },
             {
-                tail: { node: wc.tn(numpy_saver) },
+                tail: { node: wc.tn(numpy_depo_saver) },
                 head: { node: wc.tn(drifter) },
             },
 
@@ -444,12 +446,12 @@ local app = {
 
             {
                 tail: { node: wc.tn(digitizer) },
-                head: { node: wc.tn(numpy_saver) },
+                head: { node: wc.tn(numpy_frame_saver) },
             },
 
             
             {                   // terminate the stream
-                tail: { node: wc.tn(numpy_saver) },
+                tail: { node: wc.tn(numpy_frame_saver) },
                 head: { node: wc.tn(frame_sink) },
             },
         ]

@@ -16,6 +16,11 @@ Factory::Factory() {
 }
 
 Node* Factory::operator()(WireCell::INode::pointer wcnode) {
+    if (!wcnode) {
+        std::cerr << "Pgraph::Factory given nullptr wcnode\n";
+        THROW(ValueError() << errmsg{"nullptr wcnode"});
+    }
+
     auto nit = m_nodes.find(wcnode);
     if (nit != m_nodes.end()) {
         return nit->second;

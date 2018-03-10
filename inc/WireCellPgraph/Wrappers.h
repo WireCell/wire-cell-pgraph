@@ -48,7 +48,9 @@ namespace WireCell { namespace Pgraph {
 
             virtual std::string ident() {
                 std::stringstream ss;
-                ss << "<Node cat:" << m_wcnode->category()
+                ss << "<Node "
+                   << " type:" << WireCell::type(*(m_wcnode.get()))
+                   << " cat:" << m_wcnode->category()
                    << " sig:" << demangle(m_wcnode->signature());
                 ss << " inputs:[";
                 for (auto t : m_wcnode->input_types()) {
@@ -105,7 +107,6 @@ namespace WireCell { namespace Pgraph {
             }
         };
 
-// One object out for every object in.
         class Function : public PortedNode {
             IFunctionNodeBase::pointer m_wcnode;
         public:

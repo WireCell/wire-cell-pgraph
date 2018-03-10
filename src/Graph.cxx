@@ -1,9 +1,11 @@
 #include "WireCellPgraph/Graph.h"
+#include "WireCellUtil/Type.h"
 
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream> // debug
 
+using WireCell::demangle;
 using namespace WireCell::Pgraph;
 
 void Graph::add_node(Node* node)
@@ -40,8 +42,8 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
 
 
     std::cerr << "Graph::connect: "
-              << tport.signature () << ":" << tpind << " --> "
-              << hport.signature() << ":" << hpind << "\n";
+              << demangle(tport.signature ()) << ":" << tpind << " --> "
+              << demangle(hport.signature()) << ":" << hpind << "\n";
 
     return true;
 }
@@ -83,14 +85,14 @@ int Graph::execute_upstream(Node* node)
 {
     int count = 0;
     for (auto parent : m_edges_backward[node]) {
-        bool ok = (*parent)();
+        bool ok = call_node(parent);
         if (ok) {
             ++count;
             continue;
         }
         count += execute_upstream(parent);
     }
-    bool ok = (*node)();
+    bool ok = call_node(node);
     if (ok) { ++count; }
     return count;
 }
@@ -109,7 +111,7 @@ bool Graph::execute()
         for (auto nit = nodes.rbegin(); nit != nodes.rend(); ++nit, ++count) {
             Node* node = *nit;
 
-            bool ok = (*node)();
+            bool ok = call_node(node);
             if (ok) {
                 std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
                 did_something = true;
@@ -132,7 +134,15 @@ bool Graph::execute()
     return true;    // shouldn't reach
 }
 
-
+bool Graph::call_node(Node* node)
+{
+    if (!node) {
+        std::cerr << "Graph: call: got nullptr node\n";
+        return false;
+    }
+    std::cerr << "Graph: calling: " << node->ident() << "\n";
+    return (*node)();
+}
 
 bool Graph::connected()
 {

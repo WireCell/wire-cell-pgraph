@@ -53,6 +53,9 @@ namespace WireCell {
             // of nodes executed.
             int execute_upstream(Node* node);
 
+            // All internal calling of nodes goes through here.
+            bool call_node(Node* node);
+
             // Return false if any node is not connected.
             bool connected();
         private:
