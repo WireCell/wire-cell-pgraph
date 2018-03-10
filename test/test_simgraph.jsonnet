@@ -20,6 +20,8 @@ local random = {
         seeds: [0,1,2,3,4],
     }
 };
+local utils = [cmdline, random];
+
 
 // base detector parametrs.  Together, these match no real detector.
 // The data structure is organized and named to have synergy with
@@ -385,9 +387,9 @@ local numpy_saver = {
 };
 
 // not configurable, just name it.
-local frame_sink = { type: "FrameSink" };
+local frame_sink = { type: "DumpFrames" };
 
-local readout = [digitizer, numpy_saver, frame_sink];
+local readout = [digitizer, numpy_saver];
 
 // Here the nodes are joined into a graph for execution by the main
 // app object.  
@@ -455,5 +457,5 @@ local app = {
 };
 
 // Finally, we return the actual configuration sequence:
-kinematics + anodes + noise + signal + readout + [app]
+utils + kinematics + anodes + noise + signal + readout + [app]
 
