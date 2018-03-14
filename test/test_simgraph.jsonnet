@@ -72,7 +72,7 @@ local base_params = {
     sim : {
         fluctuate: true,
         digitize: true,
-        noise: true,
+        noise: false,
     },
     files : {                   // each detector MUST fill these in.
         wires: null,
@@ -271,7 +271,7 @@ local noise_source = {
         readout_time: params.daq.readout_time,
     }
 };
-local noise = [noise_model, noise_source];
+local noise = if params.sim.noise then [noise_model, noise_source] else [];
 
 
 //
@@ -427,13 +427,13 @@ local app = {
             {
                 tail: { node: wc.tn(drifter) },
                 head: { node: wc.tn(multi_ductor) },
-            },
-
+            }
+        ] + ( if params.sim.noise then [
+            // noise
             {
                 tail: { node: wc.tn(multi_ductor) },
                 head: { node: wc.tn(frame_summer), port:0 },
             },
-
             {
                 tail: { node: wc.tn(noise_source) },
                 head: { node: wc.tn(frame_summer), port:1 },
@@ -442,8 +442,14 @@ local app = {
             {
                 tail: { node: wc.tn(frame_summer) },
                 head: { node: wc.tn(digitizer) },
-            },
-
+            }
+        ] else [
+            // no noise
+            {
+                tail: { node: wc.tn(multi_ductor) },
+                head: { node: wc.tn(digitizer) },
+            }
+        ]) + [
             {
                 tail: { node: wc.tn(digitizer) },
                 head: { node: wc.tn(numpy_frame_saver) },
