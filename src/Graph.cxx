@@ -113,7 +113,7 @@ bool Graph::execute()
 
             bool ok = call_node(node);
             if (ok) {
-                std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
+                //std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
                 did_something = true;
                 break;          // start again from bottom of graph
             }
@@ -140,7 +140,7 @@ bool Graph::call_node(Node* node)
         std::cerr << "Graph: call: got nullptr node\n";
         return false;
     }
-    std::cerr << "Graph: calling: " << node->ident() << "\n";
+    //std::cerr << "Graph: calling: " << node->ident() << "\n";
     return (*node)();
 }
 
