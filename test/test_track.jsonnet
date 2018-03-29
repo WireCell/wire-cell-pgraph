@@ -179,6 +179,8 @@ local blips = debugblips;
 //
 //  Some basic/bogus cosmic rays
 // 
+local zstart=6500;      // mm
+local zend=zstart+1500; // mm
 local cosmics = {
     type: "TrackDepos",
     name: "cosmics",
@@ -186,9 +188,14 @@ local cosmics = {
         step_size: 1.0 * wc.millimeter,
         tracks: [
             {
-                time: 10.0*wc.ns,
-                charge: -10000, // negative means charge per step
-                ray: wc.ray(wc.point(100,0,0,wc.mm), wc.point(200,0,1500,wc.mm))
+                time: 0.0*wc.us,
+                charge: -5000, // negative means charge per step
+                ray: wc.ray(wc.point(100,50,zstart,wc.mm), wc.point(200,50,zend,wc.mm))
+            },
+            {
+                time: 50.0*wc.us,
+                charge: -5000, // negative means charge per step
+                ray: wc.ray(wc.point(100,-50,zstart,wc.mm), wc.point(200,-50,zend,wc.mm))
             },
         ]
     }
@@ -289,44 +296,98 @@ local ductor_vyground = ductor_nominal {
     }
 };
 
+// The guts of this chain can be generated with:
+// $ wirecell-util convert-uboone-wire-regions \
+//                 microboone-celltree-wires-v2.1.json.bz2 \
+//                 MicroBooNE_ShortedWireList_v2.csv \
+//                 foo.json
+//
+// Copy-paste the plane:0 and plane:2 in uv_ground and vy_ground, respectively
+local uboone_ductor_chain = [
+    {
+        ductor: wc.tn(ductor_uvground),
+        rule: "wirebounds",
+        args: [ 
+            [ { plane:0, min:296, max:296 } ],
+            [ { plane:0, min:298, max:315 } ],
+            [ { plane:0, min:317, max:317 } ],
+            [ { plane:0, min:319, max:327 } ],
+            [ { plane:0, min:336, max:337 } ],
+            [ { plane:0, min:343, max:345 } ],
+            [ { plane:0, min:348, max:351 } ],
+            [ { plane:0, min:376, max:400 } ],
+            [ { plane:0, min:410, max:445 } ],
+            [ { plane:0, min:447, max:484 } ],
+            [ { plane:0, min:501, max:503 } ],
+            [ { plane:0, min:505, max:520 } ],
+            [ { plane:0, min:522, max:524 } ],
+            [ { plane:0, min:536, max:559 } ],
+            [ { plane:0, min:561, max:592 } ],
+            [ { plane:0, min:595, max:598 } ],
+            [ { plane:0, min:600, max:632 } ],
+            [ { plane:0, min:634, max:652 } ],
+            [ { plane:0, min:654, max:654 } ],
+            [ { plane:0, min:656, max:671 } ],
+        ],
+    },
+
+    {
+        ductor: wc.tn(ductor_vyground),
+        rule: "wirebounds",
+        args: [
+            [ { plane:2, min:2336, max:2399 } ],
+            [ { plane:2, min:2401, max:2414 } ],
+            [ { plane:2, min:2416, max:2463 } ],
+        ],
+    },
+    {               // catch all if the above do not match.
+        ductor: wc.tn(ductor_nominal),
+        rule: "bool",
+        args: true,
+    },
+
+];
+
+// note, this rule chain is nonphysical and over-simplified to make
+// debugging easier.  A track from Z=0 to Z=3mm*500 will pass through:
+// N|UV|N|VY|N field response functions where N=nominal
+local test_ductor_chain = [
+    {
+        ductor: wc.tn(ductor_uvground),
+        rule: "wirebounds",
+        args: [ 
+            [
+                { plane: 2, min:100, max:200 },
+            ],
+        ],
+    },
+
+    {
+        ductor: wc.tn(ductor_vyground),
+        rule: "wirebounds",
+        args: [
+            [
+                { plane: 2, min:300, max:400 },
+            ],
+        ],
+    },
+
+    {               // catch all if the above do not match.
+        ductor: wc.tn(ductor_nominal),
+        rule: "bool",
+        args: true,
+    },
+];
+
+
 // One multiductor to rull them all.
 local multi_ductor = {
     type: "MultiDuctor",
     data : {
         anode: wc.tn(anode_nominal),
-
-        // note, this rule chain is nonphysical to make debugging
-        // easier.  A track from Z=0 to Z=3mm*500 will pass through:
-        // N|UV|N|VY|N field response functions where N=nominal
         chains : [
-            [
-                {
-                    ductor: wc.tn(ductor_uvground),
-                    rule: "wirebounds",
-                    args: [ 
-                        [
-                            { plane: 2, min:100, max:200 },
-                        ],
-                    ],
-                },
-
-                {
-                    ductor: wc.tn(ductor_vyground),
-                    rule: "wirebounds",
-                    args: [
-                        [
-                            { plane: 2, min:300, max:400 },
-                        ],
-                    ],
-                },
-
-                {               // catch all if the above do not match.
-                    ductor: wc.tn(ductor_nominal),
-                    rule: "bool",
-                    args: true,
-                },
-
-            ],
+            //test_ductor_chain,
+            uboone_ductor_chain,
         ],
     }
 };
