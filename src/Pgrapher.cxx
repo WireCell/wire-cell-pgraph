@@ -42,7 +42,7 @@ void Pgrapher::configure(const WireCell::Configuration& cfg)
 
 {
     Pgraph::Factory fac;
-    std::cerr << "Pgrapher: connecting: " << cfg["edges"].size() << "edges\n";
+    std::cerr << "Pgrapher: connecting: " << cfg["edges"].size() << " edges\n";
     for (auto jedge : cfg["edges"]) {
         auto tail = get_node(jedge["tail"]);
         auto head = get_node(jedge["head"]);

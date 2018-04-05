@@ -102,7 +102,7 @@ namespace WireCell { namespace Pgraph {
                 if (ip.empty()) { return false; }
                 auto obj = ip.get();
                 bool ok = (*m_wcnode)(obj);
-                std::cerr << "Sink returns: " << ok << std::endl;
+                //std::cerr << "Sink returns: " << ok << std::endl;
                 return ok;
             }
         };
