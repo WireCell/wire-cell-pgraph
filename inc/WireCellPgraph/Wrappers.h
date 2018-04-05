@@ -78,7 +78,7 @@ namespace WireCell { namespace Pgraph {
                 m_wcnode = std::dynamic_pointer_cast<ISourceNodeBase>(wcnode);
             }
             virtual ~Source() {}
-            virtual bool ready() { return m_ok; }
+
             virtual bool operator()() {
                 boost::any obj;
                 m_ok = (*m_wcnode)(obj);
@@ -183,11 +183,6 @@ namespace WireCell { namespace Pgraph {
         //     }
         //     virtual ~Fanin() {}
 
-        //     // A Fanin node is ready when all streams that have not
-        //     // yet ended have input.
-        //     virtual bool ready() {
-                
-        //     }
         // };
 
         class Hydra : public PortedNode {
@@ -197,30 +192,6 @@ namespace WireCell { namespace Pgraph {
                 m_wcnode = std::dynamic_pointer_cast<IHydraNodeBase>(wcnode);
             }
             virtual ~Hydra() { }
-            virtual bool ready() {
-
-                // A hydra is ready for calling if all open input ports have some data.
-
-                auto& iports = input_ports();
-                const size_t nin = iports.size();
-                int nvalid=0, nfull=0;
-                for (size_t ind=0; ind<nin; ++ind) {
-                    Port& p = iports[ind];
-                    if (p.eos()) {
-                        continue;
-                    }
-                    ++nvalid;
-                    if (p.empty()) {
-                        continue;
-                    }
-                    ++nfull;
-                }
-                std::cerr << "Hydra::ready: nvalid=" << nvalid << ", nfull=" << nfull <<"\n";
-                if (!nvalid) {
-                    return false;
-                }
-                return nvalid == nfull;
-            }
             
             virtual bool operator()() {
                 auto& iports = input_ports();

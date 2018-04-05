@@ -40,6 +40,14 @@ public:
         return std::cerr;
     }
     
+    virtual bool ready()  {
+        using Pgraph::Port;
+        for (auto& p : m_ports[Port::input]) {
+            if (p.empty()) return false;
+        }
+        return true;
+    }
+
 
 private:
     std::string m_name;
@@ -56,7 +64,7 @@ public:
     virtual bool operator()() {
         if (m_num >= m_end) {
             msg("dry\n");
-            return true;
+            return false;
         }
         msg("make: ") << m_num << std::endl;
         Pgraph::Data d = m_num;
@@ -72,6 +80,7 @@ public:
     Sink(int id) : IdNode("dst", id, 1, 0) {}
     virtual ~Sink() {}
     virtual bool operator()() {
+        if (iport().empty()) { return false; }
         int d = boost::any_cast<int>(iport().get());
         msg("sink: ") << d << std::endl;
         return true;
@@ -95,12 +104,19 @@ public:
         Pgraph::Queue outv;
         auto& o = msg("join: ");
         for (auto p : input_ports()) {
+            if (p.empty()) {
+                continue;
+            }
             Pgraph::Data d = p.get();
             int n = boost::any_cast<int>(d);
             o << n << " ";
             outv.push_back(d);
         }
         o << std::endl;
+
+        if (outv.empty()) {
+            return false;
+        }
 
         Pgraph::Data out = outv;
         oport().put(out);
@@ -118,7 +134,13 @@ public:
     }
     virtual bool operator()() {
         if (m_buf.empty()) {
+            if (iport().empty()) {
+                return false;
+            }
             m_buf = boost::any_cast<Pgraph::Queue>(iport().get());
+        }
+        if (m_buf.empty()) {
+            return false;
         }
         auto d = m_buf.front();
         m_buf.pop_front();
@@ -133,6 +155,9 @@ class Nfan : public IdNode {
 public:
     Nfan(int id, int n) : IdNode("fan", id, 1, n) {}
     virtual bool operator()() {
+        if (iport().empty()) {
+            return false;
+        }
         auto obj = iport().get();
         int d = boost::any_cast<int>(obj);
         msg("nfan: ") << d << std::endl;
@@ -147,6 +172,9 @@ class Func : public IdNode
 public:
     Func(int id) : IdNode("fun", id, 1, 1) {}
     virtual bool operator()() {
+        if (iport().empty()) {
+            return false;
+        }
         Pgraph::Data out = iport().get();
         int d = boost::any_cast<int>(out);
         msg("func: ") << d << std::endl;

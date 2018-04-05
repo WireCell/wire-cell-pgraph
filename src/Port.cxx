@@ -1,9 +1,5 @@
 #include "WireCellPgraph/Port.h"
 
-// this is needed to test for EOS which otherwise would leave Port
-// independent from INode....
-#include "WireCellIface/INode.h"
-
 
 #include <iostream>
 

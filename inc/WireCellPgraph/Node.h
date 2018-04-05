@@ -19,15 +19,6 @@ namespace WireCell {
             // Concrete node must return some instance identifier.
             virtual std::string ident() = 0;
 
-            // By default a Node is ready to execute if no input ports
-            // are empty. Concrete ports may override.
-            virtual bool ready()  {
-                for (auto& p : m_ports[Port::input]) {
-                    if (p.empty()) return false;
-                }
-                return true;
-            }
-
             Port& iport(size_t ind=0) {
                 return port(Port::input, ind);
             }
