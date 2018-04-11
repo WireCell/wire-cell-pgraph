@@ -12,15 +12,12 @@ Port::Port(Node* node, Type type, std::string signature, std::string name)
     , m_name(name)
     , m_sig(signature)
     , m_edge(nullptr)
-    , m_eos(false)
 { }
                 
 bool Port::isinput() { return m_type == Port::input; }
 bool Port::isoutput() { return m_type == Port::output; }
 
 Edge Port::edge() { return m_edge; }
-
-bool Port::eos() { return m_eos; }
 
 // Connect an edge, returning any previous one.
 Edge Port::plug(Edge edge) {
