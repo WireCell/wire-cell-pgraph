@@ -72,7 +72,7 @@ local base_params = {
     sim : {
         fluctuate: true,
         digitize: true,
-        noise: false,
+        noise: true,
     },
     files : {                   // each detector MUST fill these in.
         wires: null,
@@ -279,6 +279,7 @@ local ductor_nominal = {
     type : 'Ductor',
     name : 'nominal',
     data : params.daq + params.lar + params.sim {
+        continuous: false,
         nsigma : 3,
 	anode: wc.tn(anode_nominal),
     }
@@ -385,6 +386,7 @@ local multi_ductor = {
     type: "MultiDuctor",
     data : {
         anode: wc.tn(anode_nominal),
+        continuous: false,
         chains : [
             //test_ductor_chain,
             uboone_ductor_chain,
@@ -394,11 +396,17 @@ local multi_ductor = {
 local ductor = multi_ductor;
 local signal = [drifter, ductor_nominal, ductor_vyground, ductor_uvground, ductor];
 
-// This is used to add noise to signal.  It has not actual
-// configuration so just name it.
+// This is used to add noise to signal.
 local frame_summer = {
     type: "FrameSummer",
+    data: {
+        align: true,
+        offset: 0.0*wc.s,
+    }
 };
+
+local noise = if params.sim.noise then [noise_model, noise_source, frame_summer] else [];
+
 
 local digitizer = {
     type: "Digitizer",
@@ -518,14 +526,64 @@ local graph_cosmics_signal_adc = [
         head: { node: wc.tn(frame_sink) },
     },
 ];
+local graph_sdd = [
+    {
+        tail: { node: wc.tn(cosmics) },
+        head: { node: wc.tn(numpy_depo_saver) },
+    },
+    {
+        tail: { node: wc.tn(numpy_depo_saver) },
+        head: { node: wc.tn(drifter) },
+    },
+    {
+        tail: { node: wc.tn(drifter) },
+        head: { node: wc.tn(ductor) },
+    },
+];
+local graph_dds = [
+    {
+        tail: { node: wc.tn(ductor) },
+        head: { node: wc.tn(digitizer) },
+    },
+    {
+        tail: { node: wc.tn(digitizer) },
+        head: { node: wc.tn(numpy_frame_saver) },
+    },
+    {                   // terminate the stream
+        tail: { node: wc.tn(numpy_frame_saver) },
+        head: { node: wc.tn(frame_sink) },
+    },
+];
+local graph_ndds = [
+    {
+        tail: { node: wc.tn(ductor) },
+        head: { node: wc.tn(frame_summer), port:0 },
+    },
+    {
+        tail: { node: wc.tn(noise_source) },
+        head: { node: wc.tn(frame_summer), port:1 },
+    },
+    {
+        tail: { node: wc.tn(frame_summer) },
+        head: { node: wc.tn(digitizer) },
+    },
+    {
+        tail: { node: wc.tn(digitizer) },
+        head: { node: wc.tn(numpy_frame_saver) },
+    },
+    {                   // terminate the stream
+        tail: { node: wc.tn(numpy_frame_saver) },
+        head: { node: wc.tn(frame_sink) },
+    },
+];
+local graph_edges = if params.sim.noise then graph_sdd + graph_ndds else graph_sdd + graph_dds;
+
 
 // Here the nodes are joined into a graph for execution by the main
 // app object.  
 local app = {
     type: "Pgrapher",
-    data: {
-        edges: graph_cosmics_signal_adc,
-    }
+    data: { edges: graph_edges, }
 };
 
 // Finally, we return the actual configuration sequence:
