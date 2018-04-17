@@ -11,6 +11,7 @@ Factory::Factory() {
     bind_maker<Function>(INode::functionNode);
     bind_maker<Queuedout>(INode::queuedoutNode);
     bind_maker<Join>(INode::joinNode);
+    bind_maker<Split>(INode::splitNode);
     bind_maker<Hydra>(INode::hydraNode);
     // ...
 }

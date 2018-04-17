@@ -11,6 +11,7 @@
 #include "WireCellIface/IFunctionNode.h"
 #include "WireCellIface/IQueuedoutNode.h"
 #include "WireCellIface/IJoinNode.h"
+#include "WireCellIface/ISplitNode.h"
 #include "WireCellIface/IHydraNode.h"
 
 #include "WireCellUtil/Type.h"
@@ -25,8 +26,9 @@ namespace WireCell { namespace Pgraph {
         // and adapt it to Pgraph::Node.  They operate at the
         // boost::any level and the I*BaseNode INode level.  They are
         // not meant to be constructed directly but through the
-        // type-erasing Pgraph::Factory.  They intercept data looking
-        // for INode::DFPMeta objects to control flow.
+        // type-erasing Pgraph::Factory.  Their operator() must return
+        // false if their underlying node can not be called or if that
+        // node returns false meaning no change of data.
 
         // Base class taking care of constructing ports and providing
         // ident().
@@ -80,6 +82,11 @@ namespace WireCell { namespace Pgraph {
             virtual ~Source() {}
 
             virtual bool operator()() {
+                Port& op = oport();
+                if (op.size()) {
+                    return false; // don't call me if I've got existing output waiting
+                }
+
                 boost::any obj;
                 m_ok = (*m_wcnode)(obj);
                 if (!m_ok) {
@@ -99,7 +106,9 @@ namespace WireCell { namespace Pgraph {
             virtual ~Sink() {}
             virtual bool operator()() {
                 Port& ip = iport();
-                if (ip.empty()) { return false; }
+                if (ip.empty()) {
+                    return false; // don't call me if there is nothing to give me.
+                }
                 auto obj = ip.get();
                 bool ok = (*m_wcnode)(obj);
                 //std::cerr << "Sink returns: " << ok << std::endl;
@@ -115,13 +124,21 @@ namespace WireCell { namespace Pgraph {
             }
             virtual ~Function() {}
             virtual bool operator()() {
+                Port& op = oport();
+                if (op.size()) {
+                    return false; // don't call me if I've got existing output waiting
+                }
                 Port& ip = iport();
-                if (ip.empty()) { return false; }
+                if (ip.empty()) {
+                    return false; // don't call me if there is nothing to give me.
+                }
                 boost::any out;
                 auto in = ip.get();
                 bool ok = (*m_wcnode)(in, out);
-                if (!ok) return false;
-                oport().put(out);
+                if (!ok) {
+                    return false;
+                }
+                op.put(out);
                 return true;
             }
         };
@@ -155,10 +172,16 @@ namespace WireCell { namespace Pgraph {
             }
             virtual ~Join() {}
             virtual bool operator()() {
+                Port& op = oport();
+                if (op.size()) {
+                    return false; // don't call me if I've got existing output waiting
+                }
+
                 auto& iports = input_ports();
                 size_t nin = iports.size();
                 for (size_t ind=0; ind<nin; ++ind) {
-                    if (iports[ind].empty()) { return false;
+                    if (iports[ind].empty()) {
+                        return false;
                     }                        
                 }
                 IJoinNodeBase::any_vector inv(nin);
@@ -167,8 +190,51 @@ namespace WireCell { namespace Pgraph {
                 }
                 boost::any out;
                 bool ok = (*m_wcnode)(inv, out);
-                if (!ok) return false;
-                oport().put(out);
+                if (!ok) {
+                    return false;
+                }
+                op.put(out);
+                return true;                                      
+            }
+        };
+
+        class Split : public PortedNode {
+            ISplitNodeBase::pointer m_wcnode;
+        public:
+            Split(INode::pointer wcnode) : PortedNode(wcnode) {
+                m_wcnode = std::dynamic_pointer_cast<ISplitNodeBase>(wcnode);
+            }
+            virtual ~Split() {}
+            virtual bool operator()() {
+
+                Port& ip = iport();
+                if (ip.empty()) {
+                    return false; // don't call me if there is not any new input
+                }
+
+                auto& oports = output_ports();
+                size_t nout = oports.size();
+
+                bool full = true;
+                for (size_t ind=0; ind<nout; ++ind) {
+                    if (oports[ind].empty()) {
+                        full = false;
+                    }
+                }
+                if (full) {
+                    return false; // don't call me if all my output has something
+                }                
+
+                auto in = ip.get();
+
+                ISplitNodeBase::any_vector outv(nout);
+                bool ok = (*m_wcnode)(in, outv);
+                if (!ok) {
+                    return false;
+                }
+                for (size_t ind=0; ind<nout; ++ind) {
+                    oports[ind].put(outv[ind]);
+                }
                 return true;                                      
             }
         };
