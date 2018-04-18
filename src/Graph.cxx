@@ -100,6 +100,7 @@ int Graph::execute_upstream(Node* node)
     return count;
 }
 
+// this bool indicates exception, and is probably ignored
 bool Graph::execute()
 {
     auto nodes = sort_kahn();
@@ -121,17 +122,17 @@ bool Graph::execute()
                 break;          // start again from bottom of graph
             }
 
-            int nupstream = execute_upstream(node);
-            if (nupstream > 0) {
-                did_something = true;
-                break;          // start again from bottom of graph
-            }
+            // int nupstream = execute_upstream(node);
+            // if (nupstream > 0) {
+            //     did_something = true;
+            //     break;          // start again from bottom of graph
+            // }
 
             // otherwise try upstream following topological sort
         }
 
         if (!did_something) {
-            return true;
+            return true;        // it's okay to do nothing.
         }
     }
     return true;    // shouldn't reach
@@ -143,8 +144,9 @@ bool Graph::call_node(Node* node)
         std::cerr << "Graph: call: got nullptr node\n";
         return false;
     }
-    //std::cerr << "Graph: calling: " << node->ident() << "\n";
-    return (*node)();
+    bool ok = (*node)();
+    std::cerr << "Graph call ["<<ok<<"] called: " << node->ident() << "\n";
+    return ok;
 }
 
 bool Graph::connected()

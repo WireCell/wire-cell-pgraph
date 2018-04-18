@@ -173,7 +173,7 @@ namespace WireCell { namespace Pgraph {
             virtual ~Join() {}
             virtual bool operator()() {
                 Port& op = oport();
-                if (op.size()) {
+                if (!op.empty()) {
                     return false; // don't call me if I've got existing output waiting
                 }
 
