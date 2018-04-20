@@ -145,7 +145,11 @@ bool Graph::call_node(Node* node)
         return false;
     }
     bool ok = (*node)();
-    std::cerr << "Graph call ["<<ok<<"] called: " << node->ident() << "\n";
+    // this can be very noisy but useful to uncomment to understand
+    // the graph execution order.
+    if (ok) {
+        std::cerr << "Graph call ["<<ok<<"] called: " << node->ident() << "\n";
+    }
     return ok;
 }
 
