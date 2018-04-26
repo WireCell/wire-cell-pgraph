@@ -41,12 +41,12 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
     m_edges_backward[head].push_back(tail);
 
 
-    std::cerr << "Graph::connect:\n"
-              << tail->ident() << "\n"
-              << "\t(" << demangle(tport.signature ()) << ":" << tpind << ")\n"
-              << "\t--> \n"
-              << head->ident() << "\n"
-              << "\t(" << demangle(hport.signature()) << ":" << hpind << ")\n";
+    // std::cerr << "Graph::connect:\n"
+    //           << tail->ident() << "\n"
+    //           << "\t(" << demangle(tport.signature ()) << ":" << tpind << ")\n"
+    //           << "\t--> \n"
+    //           << head->ident() << "\n"
+    //           << "\t(" << demangle(hport.signature()) << ":" << hpind << ")\n";
 
     return true;
 }
