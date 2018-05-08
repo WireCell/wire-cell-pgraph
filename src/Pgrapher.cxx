@@ -27,8 +27,8 @@ std::pair<WireCell::INode::pointer, int> get_node(WireCell::Configuration jone)
     using namespace WireCell;
     std::string node = jone["node"].asString();
 
-    // false as we should be the ones creating
-    auto nptr = Factory::lookup_tn<INode>(node, false);
+    // We should NOT be the one creating this component.
+    auto nptr = Factory::find_maybe_tn<INode>(node);
     if (!nptr) {
         std::cerr << "Pgrapher: failed to get node " << node << "\n";
         THROW(ValueError() << errmsg{"failed to get node"});
