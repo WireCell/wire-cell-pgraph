@@ -54,6 +54,9 @@ namespace WireCell {
             // Put the data onto the queue.
             void put(Data& data);
 
+	    // Get back the associated Node.
+	    Node* node();
+
             const std::string& name();
             const std::string& signature();
 

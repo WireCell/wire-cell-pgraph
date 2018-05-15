@@ -56,7 +56,7 @@ private:
 class Source : public IdNode {
 public:
     Source(int id, int beg, int end)
-        : IdNode("src", id, 0, 1), m_num(beg), m_beg(beg), m_end(end) {}
+        : IdNode("src", id, 0, 1), m_num(beg), m_end(end) {}
     virtual ~Source() {}
     virtual bool ready()  {
         return m_num < m_end;
@@ -73,7 +73,7 @@ public:
         return true;
     }
 private:
-    int m_num, m_beg, m_end;
+    int m_num, m_end;
 };
 class Sink: public IdNode {
 public:
