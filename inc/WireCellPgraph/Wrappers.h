@@ -12,6 +12,7 @@
 #include "WireCellIface/IQueuedoutNode.h"
 #include "WireCellIface/IJoinNode.h"
 #include "WireCellIface/ISplitNode.h"
+#include "WireCellIface/IFanoutNode.h"
 #include "WireCellIface/IHydraNode.h"
 
 #include "WireCellUtil/Type.h"
@@ -36,6 +37,9 @@ namespace WireCell { namespace Pgraph {
         {
         public:
             PortedNode(INode::pointer wcnode) : m_wcnode(wcnode) {
+                if (! m_wcnode.get()) {
+                    THROW(ValueError() << errmsg{"Pgraph::PortedNode got null INode"});
+                }
                 
                 using Pgraph::Port;
                 for (auto sig : wcnode->input_types()) {
@@ -198,13 +202,17 @@ namespace WireCell { namespace Pgraph {
             }
         };
 
-        class Split : public PortedNode {
-            ISplitNodeBase::pointer m_wcnode;
+        template<class INodeBaseType>
+        class SplitFanout : public PortedNode {
         public:
-            Split(INode::pointer wcnode) : PortedNode(wcnode) {
-                m_wcnode = std::dynamic_pointer_cast<ISplitNodeBase>(wcnode);
+            typedef INodeBaseType inode_type;
+            typedef typename INodeBaseType::any_vector any_vector;
+            typedef typename INodeBaseType::pointer pointer;
+
+            SplitFanout(INode::pointer wcnode) : PortedNode(wcnode) {
+                m_wcnode = std::dynamic_pointer_cast<inode_type>(wcnode);
             }
-            virtual ~Split() {}
+            virtual ~SplitFanout() {}
             virtual bool operator()() {
 
                 Port& ip = iport();
@@ -227,17 +235,24 @@ namespace WireCell { namespace Pgraph {
 
                 auto in = ip.get();
 
-                ISplitNodeBase::any_vector outv(nout);
+                any_vector outv(nout);
                 bool ok = (*m_wcnode)(in, outv);
                 if (!ok) {
                     return false;
                 }
+                //std::cerr << "SplitFanout: " << nout << " " << outv.size() << std::endl;
                 for (size_t ind=0; ind<nout; ++ind) {
                     oports[ind].put(outv[ind]);
                 }
                 return true;                                      
             }
+        private:
+            pointer m_wcnode;
+
         };
+        typedef SplitFanout<ISplitNodeBase> Split;
+        typedef SplitFanout<IFanoutNodeBase> Fanout;
+
 
         // N-to-1 of the same type with synchronization on input.
         // class Fanin : public PortedNode {
