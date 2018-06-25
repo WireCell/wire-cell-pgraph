@@ -13,6 +13,7 @@
 #include "WireCellIface/IJoinNode.h"
 #include "WireCellIface/ISplitNode.h"
 #include "WireCellIface/IFanoutNode.h"
+#include "WireCellIface/IFaninNode.h"
 #include "WireCellIface/IHydraNode.h"
 
 #include "WireCellUtil/Type.h"
@@ -168,13 +169,17 @@ namespace WireCell { namespace Pgraph {
             }
         };
 
-        class Join : public PortedNode {
-            IJoinNodeBase::pointer m_wcnode;
+        template<class INodeBaseType>
+        class JoinFanin : public PortedNode {
         public:
-            Join(INode::pointer wcnode) : PortedNode(wcnode) {
-                m_wcnode = std::dynamic_pointer_cast<IJoinNodeBase>(wcnode);
+            typedef INodeBaseType inode_type;
+            typedef typename INodeBaseType::any_vector any_vector;
+            typedef typename INodeBaseType::pointer pointer;
+
+            JoinFanin(INode::pointer wcnode) : PortedNode(wcnode) {
+                m_wcnode = std::dynamic_pointer_cast<INodeBaseType>(wcnode);
             }
-            virtual ~Join() {}
+            virtual ~JoinFanin() {}
             virtual bool operator()() {
                 Port& op = oport();
                 if (!op.empty()) {
@@ -188,7 +193,7 @@ namespace WireCell { namespace Pgraph {
                         return false;
                     }                        
                 }
-                IJoinNodeBase::any_vector inv(nin);
+                any_vector inv(nin);
                 for (size_t ind=0; ind<nin; ++ind) {
                     inv[ind] = iports[ind].get();
                 }
@@ -200,7 +205,12 @@ namespace WireCell { namespace Pgraph {
                 op.put(out);
                 return true;                                      
             }
+        private:
+            pointer m_wcnode;
         };
+        typedef JoinFanin<IJoinNodeBase> Join;
+        typedef JoinFanin<IFaninNodeBase> Fanin;
+
 
         template<class INodeBaseType>
         class SplitFanout : public PortedNode {

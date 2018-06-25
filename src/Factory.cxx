@@ -13,6 +13,7 @@ Factory::Factory() {
     bind_maker<Join>(INode::joinNode);
     bind_maker<Split>(INode::splitNode);
     bind_maker<Fanout>(INode::fanoutNode);
+    bind_maker<Fanin>(INode::faninNode);
     bind_maker<Hydra>(INode::hydraNode);
     // ...
 }
