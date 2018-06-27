@@ -18,6 +18,7 @@ WireCell::Configuration Pgrapher::default_configuration() const
     Configuration cfg;
 
     cfg["edges"] = Json::arrayValue;
+    cfg["verbosity"] = 0;
     return cfg;
 }
 
@@ -60,6 +61,7 @@ void Pgrapher::configure(const WireCell::Configuration& cfg)
         std::cerr << "Pgrapher: graph not fully connected\n";
         THROW(ValueError() << errmsg{"graph not fully connected"});
     }
+    m_graph.set_verbosity(get(cfg, "verbosity", m_verbosity));
 }
 
 

@@ -72,6 +72,7 @@ namespace WireCell {
             virtual WireCell::Configuration default_configuration() const;
         private:
             Graph m_graph;
+            int m_verbosity;
         };
     }
 }
