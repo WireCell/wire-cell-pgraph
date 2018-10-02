@@ -6,7 +6,7 @@
 #include <iostream>
 
 WIRECELL_FACTORY(Pgrapher, WireCell::Pgraph::Pgrapher,
-                 WireCell::IApplication, WireCell::IConfigurable);
+                 WireCell::IApplication, WireCell::IConfigurable)
 
 
 
