@@ -53,7 +53,7 @@
 
 #include "WireCellIface/IApplication.h"
 #include "WireCellIface/IConfigurable.h"
-
+#include "WireCellUtil/Logging.h"
 #include "WireCellPgraph/Graph.h"
 
 namespace WireCell {
@@ -73,6 +73,7 @@ namespace WireCell {
         private:
             Graph m_graph;
             int m_verbosity;
+            Log::logptr_t l;
         };
     }
 }

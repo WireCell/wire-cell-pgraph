@@ -23,6 +23,7 @@
 #define WIRECELL_PGRAPH_GRAPH
 
 #include "WireCellPgraph/Node.h"
+#include "WireCellUtil/Logging.h"
 
 #include <vector>
 #include <unordered_set>
@@ -33,7 +34,7 @@ namespace WireCell {
 
         class Graph {
         public:
-            Graph() : m_verbosity(0) {}
+            Graph();
 
             // Add a node to the graph.
             void add_node(Node* node);
@@ -61,13 +62,13 @@ namespace WireCell {
             // Return false if any node is not connected.
             bool connected();
 
-            // Set verbosity of logging to std::cerr. 0:none, 1:successfully executed nodes
-            void set_verbosity(int verbosity) { m_verbosity = verbosity; }
         private:
             std::vector<std::pair<Node*,Node*> > m_edges;
             std::unordered_set<Node*> m_nodes;
-            std::unordered_map< Node*, std::vector<Node*> > m_edges_forward, m_edges_backward;
+            std::unordered_map< Node*, std::vector<Node*> > m_edges_forward,
+                m_edges_backward;
             int m_verbosity;
+            Log::logptr_t l;
         };
 }
 }

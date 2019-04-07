@@ -3,7 +3,9 @@
 
 using namespace WireCell::Pgraph;
 
-Factory::Factory() {
+Factory::Factory()
+    : l(Log::logger("pgraph"))
+{
     // categories defined in INode.h.
     // if it's not here, you ain't usin' it.
     bind_maker<Source>(INode::sourceNode);
@@ -20,7 +22,7 @@ Factory::Factory() {
 
 Node* Factory::operator()(WireCell::INode::pointer wcnode) {
     if (!wcnode) {
-        std::cerr << "Pgraph::Factory given nullptr wcnode\n";
+        l->error("factory given nullptr wcnode");
         THROW(ValueError() << errmsg{"nullptr wcnode"});
     }
 
@@ -30,8 +32,8 @@ Node* Factory::operator()(WireCell::INode::pointer wcnode) {
     }
     auto mit = m_factory.find(wcnode->category());
     if (mit == m_factory.end()) {
-        std::cerr << "Pgraph::Factory failed to find maker for category: "
-                  << wcnode->category() << "\n";
+        l->error("factory failed to find maker for category: {}",
+                 wcnode->category());
         THROW(ValueError() << errmsg{"failed to find maker"});
     }
     auto maker = mit->second;

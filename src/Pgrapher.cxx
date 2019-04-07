@@ -3,7 +3,6 @@
 #include "WireCellIface/INode.h"
 #include "WireCellUtil/NamedFactory.h"
 
-#include <iostream>
 
 WIRECELL_FACTORY(Pgrapher, WireCell::Pgraph::Pgrapher,
                  WireCell::IApplication, WireCell::IConfigurable)
@@ -18,7 +17,6 @@ WireCell::Configuration Pgrapher::default_configuration() const
     Configuration cfg;
 
     cfg["edges"] = Json::arrayValue;
-    cfg["verbosity"] = 0;
     return cfg;
 }
 
@@ -31,7 +29,6 @@ std::pair<WireCell::INode::pointer, int> get_node(WireCell::Configuration jone)
     // We should NOT be the one creating this component.
     auto nptr = WireCell::Factory::find_maybe_tn<INode>(node);
     if (!nptr) {
-        std::cerr << "Pgrapher: failed to get node " << node << "\n";
         THROW(ValueError() << errmsg{"failed to get node"});
     }
 
@@ -43,25 +40,24 @@ void Pgrapher::configure(const WireCell::Configuration& cfg)
 
 {
     Pgraph::Factory fac;
-    std::cerr << "Pgrapher: connecting: " << cfg["edges"].size() << " edges\n";
+    l->debug("connecting: {} edges", cfg["edges"].size());
     for (auto jedge : cfg["edges"]) {
         auto tail = get_node(jedge["tail"]);
         auto head = get_node(jedge["head"]);
 
-        //std::cerr << "Pgrapher: connecting:\n" << jedge << "\n";
-
+        SPDLOG_LOGGER_TRACE(l,"connecting: {}", jedge);
+        
         bool ok = m_graph.connect(fac(tail.first),  fac(head.first),
                                   tail.second, head.second);
         if (!ok) {
-            std::cerr << "Pgrapher: failed to connect edge:\n" << jedge << std::endl;
+            l->error("failed to connect edge: {}", jedge);
             THROW(ValueError() << errmsg{"failed to connect edge"});
         }
     }
     if (!m_graph.connected()) {
-        std::cerr << "Pgrapher: graph not fully connected\n";
+        l->error("graph not fully connected");
         THROW(ValueError() << errmsg{"graph not fully connected"});
     }
-    m_graph.set_verbosity(get(cfg, "verbosity", m_verbosity));
 }
 
 
@@ -74,6 +70,7 @@ void Pgrapher::execute()
 
 
 Pgrapher::Pgrapher()
+    : l(Log::logger("pgraph"))
 {
 }
 Pgrapher::~Pgrapher()

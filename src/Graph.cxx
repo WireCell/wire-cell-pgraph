@@ -3,10 +3,15 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <iostream> // debug
+
 
 using WireCell::demangle;
 using namespace WireCell::Pgraph;
+
+Graph::Graph()
+    : l(Log::logger("pgraph"))
+{
+}
 
 void Graph::add_node(Node* node)
 {
@@ -18,13 +23,9 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
     Port& tport = tail->output_ports()[tpind];
     Port& hport = head->input_ports()[hpind];
     if (tport.signature() != hport.signature()) {
-        std::cerr << "Pgraph::Graph: port signature mismatch: \""
-                  << tport.signature ()
-                  << "\" != \""
-                  << hport.signature()
-                  << "\"\n";
+        l->error ("port signature mismatch: \"{}\" != \"{}\"",
+                  tport.signature (), hport.signature());
         THROW(ValueError() << errmsg{"port signature mismatch"});
-
         return false;
     }
 
@@ -40,13 +41,13 @@ bool Graph::connect(Node* tail, Node* head, size_t tpind, size_t hpind)
     m_edges_forward[tail].push_back(head);
     m_edges_backward[head].push_back(tail);
 
-
-    // std::cerr << "Graph::connect:\n"
-    //           << tail->ident() << "\n"
-    //           << "\t(" << demangle(tport.signature ()) << ":" << tpind << ")\n"
-    //           << "\t--> \n"
-    //           << head->ident() << "\n"
-    //           << "\t(" << demangle(hport.signature()) << ":" << hpind << ")\n";
+    SPDLOG_LOGGER_TRACE(l, "connect {}:({}:{}) -> {}({}:{})",
+             tail->ident(),
+             demangle(tport.signature ()),
+             tpind,
+             head->ident(),
+             demangle(hport.signature()),
+             hpind);
 
     return true;
 }
@@ -104,9 +105,8 @@ int Graph::execute_upstream(Node* node)
 bool Graph::execute()
 {
     auto nodes = sort_kahn();
-    std::cerr << "Pgraph::Graph executing with " << nodes.size() << " nodes\n";
+    l->debug("executing with {} nodes", nodes.size());
 
-                
     while (true) {
 
         int count = 0;
@@ -117,18 +117,11 @@ bool Graph::execute()
 
             bool ok = call_node(node);
             if (ok) {
-                //std::cerr << "Ran node " << count << ": " << node->ident() << std::endl;
+                SPDLOG_LOGGER_TRACE(l, "ran node {}: {}", count, node->ident());
                 did_something = true;
                 break;          // start again from bottom of graph
             }
 
-            // int nupstream = execute_upstream(node);
-            // if (nupstream > 0) {
-            //     did_something = true;
-            //     break;          // start again from bottom of graph
-            // }
-
-            // otherwise try upstream following topological sort
         }
 
         if (!did_something) {
@@ -141,14 +134,14 @@ bool Graph::execute()
 bool Graph::call_node(Node* node)
 {
     if (!node) {
-        std::cerr << "Graph: call: got nullptr node\n";
+        l->error("graph call: got nullptr node");
         return false;
     }
     bool ok = (*node)();
     // this can be very noisy but useful to uncomment to understand
     // the graph execution order.
-    if (ok and m_verbosity > 0) {
-       std::cerr << "Graph call ["<<ok<<"] called: " << node->ident() << "\n";
+    if (ok) {
+        SPDLOG_LOGGER_TRACE(l, "graph call [{}] called: {}", ok, node->ident());
     }
     return ok;
 }

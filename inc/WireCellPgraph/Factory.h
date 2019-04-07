@@ -3,7 +3,7 @@
 
 
 #include "WireCellPgraph/Node.h"
-
+#include "WireCellUtil/Logging.h"
 #include "WireCellIface/INode.h"
 
 namespace WireCell {
@@ -44,6 +44,7 @@ namespace WireCell {
             typedef std::map<INode::NodeCategory, Maker*> NodeMakers;
             NodeMakers m_factory;
             WCNodeWrapperMap m_nodes;
+            Log::logptr_t l;
         };
 
     }
