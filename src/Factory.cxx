@@ -22,7 +22,7 @@ Factory::Factory()
 
 Node* Factory::operator()(WireCell::INode::pointer wcnode) {
     if (!wcnode) {
-        l->error("factory given nullptr wcnode");
+        l->critical("factory given nullptr wcnode");
         THROW(ValueError() << errmsg{"nullptr wcnode"});
     }
 
@@ -32,7 +32,7 @@ Node* Factory::operator()(WireCell::INode::pointer wcnode) {
     }
     auto mit = m_factory.find(wcnode->category());
     if (mit == m_factory.end()) {
-        l->error("factory failed to find maker for category: {}",
+        l->critical("factory failed to find maker for category: {}",
                  wcnode->category());
         THROW(ValueError() << errmsg{"failed to find maker"});
     }

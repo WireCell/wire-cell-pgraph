@@ -50,12 +50,12 @@ void Pgrapher::configure(const WireCell::Configuration& cfg)
         bool ok = m_graph.connect(fac(tail.first),  fac(head.first),
                                   tail.second, head.second);
         if (!ok) {
-            l->error("failed to connect edge: {}", jedge);
+            l->critical("failed to connect edge: {}", jedge);
             THROW(ValueError() << errmsg{"failed to connect edge"});
         }
     }
     if (!m_graph.connected()) {
-        l->error("graph not fully connected");
+        l->critical("graph not fully connected");
         THROW(ValueError() << errmsg{"graph not fully connected"});
     }
 }
