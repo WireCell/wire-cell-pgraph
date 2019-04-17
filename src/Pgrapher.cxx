@@ -3,11 +3,8 @@
 #include "WireCellIface/INode.h"
 #include "WireCellUtil/NamedFactory.h"
 
-
 WIRECELL_FACTORY(Pgrapher, WireCell::Pgraph::Pgrapher,
                  WireCell::IApplication, WireCell::IConfigurable)
-
-
 
 using WireCell::get;
 using namespace WireCell::Pgraph;
