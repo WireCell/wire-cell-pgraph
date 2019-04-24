@@ -67,7 +67,6 @@ namespace WireCell {
             std::unordered_set<Node*> m_nodes;
             std::unordered_map< Node*, std::vector<Node*> > m_edges_forward,
                 m_edges_backward;
-            int m_verbosity;
             Log::logptr_t l;
         };
 }
