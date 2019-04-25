@@ -1,5 +1,5 @@
 bld.smplpkg('WireCellPgraph', use='WireCellIface WireCellUtil',
             app_use='DYNAMO BOOST',
-            test_use='ROOTSYS JSONCPP JSONNET BOOST')
+            test_use='JSONCPP JSONNET BOOST')
 
 
